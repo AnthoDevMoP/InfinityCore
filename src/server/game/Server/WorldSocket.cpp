@@ -172,12 +172,12 @@ int WorldSocket::SendPacket(WorldPacket const& pct)
     WorldPacket const* pkt = &pct;
 
     // Empty buffer used in case packet should be compressed
-    WorldPacket buff;
-    if (m_Session && pkt->size() > 0x400)
-    {
-        buff.Compress(m_Session->GetCompressionStream(), pkt);
-        pkt = &buff;
-    }
+    //WorldPacket buff;
+    //if (m_Session && pkt->size() > 0x400)
+    //{
+        //buff.Compress(m_Session->GetCompressionStream(), pkt);
+        //pkt = &buff;
+    //}
 
     if (m_Session)
         sLog->outTrace(LOG_FILTER_OPCODES, "S->C: %s %s", m_Session->GetPlayerInfo().c_str(), GetOpcodeNameForLogging(pkt->GetOpcode()).c_str());
@@ -189,8 +189,8 @@ int WorldSocket::SendPacket(WorldPacket const& pct)
     if (m_Crypt.IsInitialized())
     {
         uint32 length = pct.size();
-        length <<= 12;
-        length |= ((uint32)pct.GetOpcode() & 0xFFF);
+        length <<= 13;
+        length |= ((uint32)pct.GetOpcode() & 0x1FFF);
 
         header.header[0] = (uint32)(length & 0xFF);
         header.header[1] = (uint32)((length >> 8) & 0xFF);	
@@ -499,8 +499,8 @@ int WorldSocket::handle_input_header (void)
         m_Crypt.DecryptRecv(clientHeader, 4);
 
         uint32 value = *(uint32*)clientHeader;
-        uint32 opcode = value & 0xFFF;
-        uint16 size = (uint16)((value & ~(uint32)0xFFF) >> 12);
+        uint32 opcode = value & 0x1FFF;
+        uint16 size = (uint16)((value & ~(uint32)0xFFF) >> 13);
 
         header.size = size + 4;
         header.cmd = opcode;
@@ -866,6 +866,9 @@ int WorldSocket::ProcessIncoming(WorldPacket* new_pct)
 int WorldSocket::HandleSendAuthSession()
 {
     WorldPacket packet(SMSG_AUTH_CHALLENGE, 37);
+    packet << uint16(0);
+    packet << uint8(1);
+
     BigNumber seed1;
     seed1.SetRand(16 * 8);
     packet.append(seed1.AsByteArray(16), 16);               // new encryption seeds
@@ -875,7 +878,7 @@ int WorldSocket::HandleSendAuthSession()
     packet.append(seed2.AsByteArray(16), 16);               // new encryption seeds
 
     packet << m_Seed;
-    packet << uint8(1);
+
     return SendPacket(packet);
 }
 
@@ -927,7 +930,6 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
     addonsData.resize(addonSize);
     recvPacket.read((uint8*)addonsData.contents(), addonSize);
 
-    recvPacket.ReadBit();
     uint32 accountNameLength = recvPacket.ReadBits(12);
     account = recvPacket.ReadString(accountNameLength);
 

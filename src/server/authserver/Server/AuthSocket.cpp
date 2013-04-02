@@ -433,7 +433,7 @@ bool AuthSocket::_HandleLogonChallenge()
                     sLog->outDebug(LOG_FILTER_NETWORKIO, "database authentication values: v='%s' s='%s'", databaseV.c_str(), databaseS.c_str());
                     
                     // multiply with 2 since bytes are stored as hexstring
-                    if (databaseV.size() != s_BYTE_SIZE * 2 || databaseS.size() != s_BYTE_SIZE * 2 || _build != fields[7].GetUInt8())              
+					if (databaseV.size() != s_BYTE_SIZE * 2 || databaseS.size() != s_BYTE_SIZE * 2 || _build != fields[7].GetUInt16())              
                         _SetVSFields(rI);
                     else
                     {
@@ -615,7 +615,7 @@ bool AuthSocket::_HandleLogonProof()
         stmt->setString(1, socket().getRemoteAddress().c_str());
         stmt->setUInt32(2, GetLocaleByName(_localizationName));
         stmt->setString(3, _os);
-        stmt->setUInt8(4, _build);
+        stmt->setUInt32(4, _build);
         stmt->setString(5, _login);
         LoginDatabase.Execute(stmt);
 

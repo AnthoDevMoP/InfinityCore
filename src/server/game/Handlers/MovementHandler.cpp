@@ -641,6 +641,7 @@ void WorldSession::ReadMovementInfo(WorldPacket& data, MovementInfo* mi)
     bool hasFallDirection = false;
     bool hasSplineElevation = false;
     bool hasSpline = false;
+    uint32 counter = 0;
 
     MovementStatusElements* sequence = GetMovementStatusElementsSequence(data.GetOpcode());
     if (sequence == NULL)
@@ -727,6 +728,9 @@ void WorldSession::ReadMovementInfo(WorldPacket& data, MovementInfo* mi)
             case MSEHasSpline:
                 hasSpline = data.ReadBit();
                 break;
+            case MSEHasCounter:
+                counter = data.ReadBits(24);
+                break;
             case MSEMovementFlags:
                 if (hasMovementFlags)
                     mi->flags = data.ReadBits(30);
@@ -812,9 +816,16 @@ void WorldSession::ReadMovementInfo(WorldPacket& data, MovementInfo* mi)
                 if (hasSplineElevation)
                     data >> mi->splineElevation;
                 break;
+            case MSECounter:
+                for (uint32 b = 0; b < counter; ++i)
+                    data.read_skip<uint32>(); 
+                break;
             case MSEZeroBit:
             case MSEOneBit:
                 data.ReadBit();
+                break;
+            case MSEIsAlive:
+                data.read_skip(4);
                 break;
             default:
                 ASSERT(false && "Incorrect sequence element detected at ReadMovementInfo");
@@ -1092,6 +1103,12 @@ void WorldSession::WriteMovementInfo(WorldPacket &data, MovementInfo* mi)
                 break;
             case MSEOneBit:
                 data.WriteBit(1);
+                break;
+            case MSEHasCounter:
+                data.WriteBits(0, 24);
+                break;
+            case MSEIsAlive:
+                data.WriteBit(0);
                 break;
             default:
                 ASSERT(false && "Incorrect sequence element detected at ReadMovementInfo");
